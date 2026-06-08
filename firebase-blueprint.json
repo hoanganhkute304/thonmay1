@@ -1,0 +1,120 @@
+{
+  "entities": {
+    "revenueRecord": {
+      "title": "Revenue Record",
+      "description": "A daily revenue reconciliation record for Thôn Mây.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique ID of the record" },
+        "date": { "type": "string", "format": "date-time", "description": "Working date" },
+        "duDau": { "type": "number", "description": "Dư đầu ngày" },
+        "revenue": { "type": "number", "description": "Doanh thu trong ngày" },
+        "cash": { "type": "number", "description": "Tiền mặt thực tế" },
+        "bank": { "type": "number", "description": "Số dư chuyển khoản thực tế" },
+        "reserve": { "type": "number", "description": "Tiền chừa két" },
+        "spentCash": { "type": "number", "description": "Tổng chi tiền mặt" },
+        "spentBank": { "type": "number", "description": "Tổng chi chuyển khoản" },
+        "spentCashItems": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "description": { "type": "string" },
+              "amount": { "type": "number" },
+              "category": { "type": "string" }
+            }
+          }
+        },
+        "spentBankItems": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "description": { "type": "string" },
+              "amount": { "type": "number" },
+              "category": { "type": "string" }
+            }
+          }
+        },
+        "salaryAdvances": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "employee": { "type": "string" },
+              "method": { "type": "string", "enum": ["cash", "bank", "debt", "fine"] },
+              "amount": { "type": "number" }
+            }
+          }
+        },
+        "totalBook": { "type": "number", "description": "Tổng sổ sách" },
+        "totalExpenses": { "type": "number", "description": "Tổng chi phí" },
+        "totalActualAssets": { "type": "number", "description": "Tổng tài sản thực có" },
+        "diff": { "type": "number", "description": "Chênh lệch" },
+        "netProfit": { "type": "number", "description": "Lợi nhuận ròng" },
+        "branchId": { "type": "string", "description": "ID of the branch" },
+        "uid": { "type": "string", "description": "User ID" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["date", "duDau", "revenue", "cash", "bank", "reserve", "spentCash", "spentBank", "totalBook", "totalExpenses", "totalActualAssets", "diff", "netProfit", "branchId", "uid", "createdAt"]
+    },
+    "branch": {
+      "title": "Branch",
+      "description": "A branch location with its own credentials and settings.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Branch Name (e.g., thonmay, admin)" },
+        "username": { "type": "string" },
+        "password": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "branch"] },
+        "displayName": { "type": "string" },
+        "address": { "type": "string" },
+        "phone": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "username", "password", "role", "displayName"]
+    },
+    "employee": {
+      "title": "Employee",
+      "description": "An employee working at a branch.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique ID of the employee" },
+        "name": { "type": "string", "description": "Name of the employee" },
+        "branchId": { "type": "string", "description": "ID of the branch where the employee works" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["name", "branchId"]
+    },
+    "expenseCategory": {
+      "title": "Expense Category",
+      "description": "A category for expenses (e.g., trái cây, mứt).",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique ID of the category" },
+        "name": { "type": "string", "description": "Name of the category" },
+        "branchId": { "type": "string", "description": "ID of the branch or 'all'" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "branchId"]
+    }
+  },
+  "firestore": {
+    "/revenueRecords/{recordId}": {
+      "schema": "revenueRecord",
+      "description": "Collection of daily revenue records."
+    },
+    "/branches/{branchId}": {
+      "schema": "branch",
+      "description": "Collection of branches and their credentials."
+    },
+    "/employees/{employeeId}": {
+      "schema": "employee",
+      "description": "Collection of employees."
+    },
+    "/expenseCategories/{categoryId}": {
+      "schema": "expenseCategory",
+      "description": "Collection of expense categories."
+    }
+  }
+}

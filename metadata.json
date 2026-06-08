@@ -1,0 +1,5 @@
+{
+  "name": "Thôn Mây Revenue Tracker",
+  "description": "Ứng dụng đối soát doanh thu cuối ngày cho Thôn Mây, lưu trữ dữ liệu trên Firebase.",
+  "requestFramePermissions": []
+}

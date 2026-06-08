@@ -1,0 +1,158 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: revenueRecords
+    // Document ID: auto-generated
+    // Fields:
+    //   - date: string (ISO 8601)
+    //   - duDau: number
+    //   - revenue: number
+    //   - cash: number
+    //   - bank: number
+    //   - reserve: number
+    //   - spent: number
+    //   - totalBook: number
+    //   - totalActual: number
+    //   - diff: number
+    //   - uid: string
+    //   - createdAt: string (ISO 8601)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.uid;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        (request.auth.token.email == "kute123kuto123@gmail.com" && request.auth.token.email_verified == true) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
+    function getBranchId() {
+      return (isAuthenticated() && exists(/databases/$(database)/documents/users/$(request.auth.uid))) 
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.branchId 
+        : "none";
+    }
+
+    function hasOnlyAllowedFields(data, fields) {
+      return data.keys().hasOnly(fields);
+    }
+
+    function isValidRevenueRecord(data) {
+      let fields = ['date', 'duDau', 'revenue', 'cash', 'bank', 'reserve', 'spentCash', 'spentBank', 'spentCashItems', 'spentBankItems', 'salaryAdvances', 'totalSalaryAdvances', 'totalBook', 'totalBookExpected', 'totalExpenses', 'totalActualAssets', 'recoveredMoney', 'diff', 'netProfit', 'branchId', 'uid', 'createdAt'];
+      return data.keys().hasAll(fields) &&
+             hasOnlyAllowedFields(data, fields) &&
+             data.date is string &&
+             data.duDau is number &&
+             data.revenue is number &&
+             data.cash is number &&
+             data.bank is number &&
+             data.reserve is number &&
+             data.spentCash is number &&
+             data.spentBank is number &&
+             data.spentCashItems is list &&
+             data.spentBankItems is list &&
+             data.salaryAdvances is list &&
+             data.totalSalaryAdvances is number &&
+             data.totalBook is number &&
+             data.totalBookExpected is number &&
+             data.totalExpenses is number &&
+             data.totalActualAssets is number &&
+             data.recoveredMoney is number &&
+             data.diff is number &&
+             data.netProfit is number &&
+             data.branchId is string &&
+             data.uid is string &&
+             data.createdAt is string;
+    }
+
+    function isValidBranch(data) {
+      let fields = ['id', 'username', 'password', 'role', 'displayName', 'address', 'phone', 'createdAt'];
+      return data.keys().hasAll(['id', 'role', 'displayName']) &&
+             hasOnlyAllowedFields(data, fields) &&
+             data.id is string &&
+             (!('username' in data) || data.username is string) &&
+             (!('password' in data) || data.password is string) &&
+             data.role in ['admin', 'branch'] &&
+             data.displayName is string;
+    }
+
+    function isValidEmployee(data) {
+      let fields = ['name', 'branchId', 'salaryCash', 'salaryBank', 'createdAt'];
+      return data.keys().hasAll(['name', 'branchId']) &&
+             hasOnlyAllowedFields(data, fields) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.branchId is string &&
+             (!('salaryCash' in data) || data.salaryCash is number) &&
+             (!('salaryBank' in data) || data.salaryBank is number);
+    }
+
+    function isValidExpenseCategory(data) {
+      let fields = ['name', 'branchId', 'createdAt'];
+      return data.keys().hasAll(['name', 'branchId']) &&
+             hasOnlyAllowedFields(data, fields) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.branchId is string;
+    }
+
+    match /revenueRecords/{recordId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && 
+                    request.resource.data.uid == request.auth.uid &&
+                    (request.resource.data.branchId == getBranchId() || isAdmin()) &&
+                    isValidRevenueRecord(request.resource.data);
+      allow update: if isAuthenticated() && 
+                    (resource.data.uid == request.auth.uid || 
+                     resource.data.branchId == getBranchId() || 
+                     isAdmin()) &&
+                    isValidRevenueRecord(request.resource.data);
+      allow delete: if isAuthenticated() && 
+                    (resource.data.uid == request.auth.uid || 
+                     resource.data.branchId == getBranchId() || 
+                     isAdmin());
+    }
+
+    match /branches/{branchId} {
+      allow read: if true; 
+      allow write: if isAdmin();
+    }
+
+    match /employees/{employeeId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && (isAdmin() || request.resource.data.branchId == getBranchId() || request.resource.data.branchId == 'all') && isValidEmployee(request.resource.data);
+      allow update: if isAuthenticated() && (isAdmin() || resource.data.branchId == getBranchId() || resource.data.branchId == 'all') && isValidEmployee(request.resource.data);
+      allow delete: if isAuthenticated() && (isAdmin() || resource.data.branchId == getBranchId() || resource.data.branchId == 'all');
+    }
+
+    match /expenseCategories/{categoryId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && (isAdmin() || request.resource.data.branchId == getBranchId() || request.resource.data.branchId == 'all') && isValidExpenseCategory(request.resource.data);
+      allow update: if isAuthenticated() && (isAdmin() || resource.data.branchId == getBranchId() || resource.data.branchId == 'all') && isValidExpenseCategory(request.resource.data);
+      allow delete: if isAuthenticated() && (isAdmin() || resource.data.branchId == getBranchId() || resource.data.branchId == 'all');
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isAuthenticated() && request.auth.uid == userId;
+    }
+  }
+}
